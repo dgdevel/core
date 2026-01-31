@@ -1,0 +1,484 @@
+{
+  "methods" : [ {
+    "name" : "generic/ping",
+    "description" : "Returns the current database timestamp",
+    "params" : [ ]
+  }, {
+    "name" : "generic/setConfigValue",
+    "description" : "Sets a configuration value for a namespace and key",
+    "params" : [ {
+      "type" : "string",
+      "name" : "namespace",
+      "description" : "The configuration namespace",
+      "required" : true
+    }, {
+      "type" : "string",
+      "name" : "key",
+      "description" : "The configuration key",
+      "required" : true
+    }, {
+      "type" : "string",
+      "name" : "value",
+      "description" : "The configuration value",
+      "required" : true
+    } ]
+  }, {
+    "name" : "generic/getConfigValue",
+    "description" : "Retrieves a configuration value for a namespace and key",
+    "params" : [ {
+      "type" : "string",
+      "name" : "namespace",
+      "description" : "The configuration namespace",
+      "required" : true
+    }, {
+      "type" : "string",
+      "name" : "key",
+      "description" : "The configuration key",
+      "required" : true
+    } ]
+  }, {
+    "name" : "generic/getAllConfigValues",
+    "description" : "Retrieves all configuration values across all namespaces",
+    "params" : [ ]
+  }, {
+    "name" : "generic/localize",
+    "description" : "Saves a translation for a key and language code",
+    "params" : [ {
+      "type" : "string",
+      "name" : "key",
+      "description" : "The translation key",
+      "required" : true
+    }, {
+      "type" : "string",
+      "name" : "languageCode",
+      "description" : "The language code (e.g., 'en', 'es', 'fr')",
+      "required" : true
+    }, {
+      "type" : "string",
+      "name" : "translation",
+      "description" : "The translated text",
+      "required" : true
+    } ]
+  }, {
+    "name" : "generic/translate",
+    "description" : "Retrieves a translation for a key and language code",
+    "params" : [ {
+      "type" : "string",
+      "name" : "key",
+      "description" : "The translation key",
+      "required" : true
+    }, {
+      "type" : "string",
+      "name" : "languageCode",
+      "description" : "The language code (e.g., 'en', 'es', 'fr')",
+      "required" : true
+    } ]
+  }, {
+    "name" : "user/create",
+    "description" : "Creates a new user in the system",
+    "params" : [ {
+      "type" : "object",
+      "name" : "user",
+      "description" : "User object containing display_name and optionally active",
+      "required" : true
+    } ]
+  }, {
+    "name" : "user/update",
+    "description" : "Updates an existing user's information",
+    "params" : [ {
+      "type" : "object",
+      "name" : "user",
+      "description" : "User object containing id, display_name, and active",
+      "required" : true
+    } ]
+  }, {
+    "name" : "user/activate",
+    "description" : "Activates a user account",
+    "params" : [ {
+      "type" : "number",
+      "name" : "id",
+      "description" : "The user's ID",
+      "required" : true
+    } ]
+  }, {
+    "name" : "user/deactivate",
+    "description" : "Deactivates a user account",
+    "params" : [ {
+      "type" : "number",
+      "name" : "id",
+      "description" : "The user's ID",
+      "required" : true
+    } ]
+  }, {
+    "name" : "user/findById",
+    "description" : "Retrieves a user by their ID",
+    "params" : [ {
+      "type" : "number",
+      "name" : "id",
+      "description" : "The user's ID",
+      "required" : true
+    } ]
+  }, {
+    "name" : "user/findBy",
+    "description" : "Retrieves a paginated list of users with optional filtering and sorting",
+    "params" : [ {
+      "type" : "object",
+      "name" : "paginator",
+      "description" : "Pagination options",
+      "required" : true
+    } ]
+  }, {
+    "name" : "user/setAttribute",
+    "description" : "Sets an attribute for a user",
+    "params" : [ {
+      "type" : "number",
+      "name" : "user_id",
+      "description" : "The user's ID",
+      "required" : true
+    }, {
+      "type" : "string",
+      "name" : "name",
+      "description" : "The attribute name",
+      "required" : true
+    }, {
+      "type" : "string",
+      "name" : "value",
+      "description" : "The attribute value",
+      "required" : true
+    } ]
+  }, {
+    "name" : "user/getAttribute",
+    "description" : "Retrieves an attribute value for a user",
+    "params" : [ {
+      "type" : "number",
+      "name" : "user_id",
+      "description" : "The user's ID",
+      "required" : true
+    }, {
+      "type" : "string",
+      "name" : "name",
+      "description" : "The attribute name",
+      "required" : true
+    } ]
+  }, {
+    "name" : "audit/log",
+    "description" : "Logs an audit event",
+    "params" : [ {
+      "type" : "number",
+      "name" : "user_id",
+      "description" : "The user ID associated with the event (null for system events)",
+      "required" : false
+    }, {
+      "type" : "string",
+      "name" : "type",
+      "description" : "The type of audit event (e.g., LOGIN, LOGOUT, SYSTEM)",
+      "required" : true
+    }, {
+      "type" : "string",
+      "name" : "payload",
+      "description" : "The payload data for the audit event",
+      "required" : true
+    } ]
+  }, {
+    "name" : "audit/list",
+    "description" : "Retrieves a paginated list of audit log entries with optional filtering and sorting",
+    "params" : [ {
+      "type" : "object",
+      "name" : "paginator",
+      "description" : "Pagination options with optional filters for type_code and user_id",
+      "required" : true
+    } ]
+  }, {
+    "name" : "auth/registerType",
+    "description" : "Registers a new credential type or updates an existing one",
+    "params" : [ {
+      "type" : "string",
+      "name" : "code",
+      "description" : "The unique code for the credential type",
+      "required" : true
+    }, {
+      "type" : "boolean",
+      "name" : "only_one_per_user_id",
+      "description" : "If true, only one valid credential can exist per user for this type",
+      "required" : true
+    }, {
+      "type" : "boolean",
+      "name" : "only_one_security_principal",
+      "description" : "If true, only one valid credential can exist per security principal for this type",
+      "required" : true
+    } ]
+  }, {
+    "name" : "auth/create",
+    "description" : "Creates a new credential for a user",
+    "params" : [ {
+      "type" : "number",
+      "name" : "user_id",
+      "description" : "The user's ID",
+      "required" : true
+    }, {
+      "type" : "string",
+      "name" : "credential_type_code",
+      "description" : "The credential type code",
+      "required" : true
+    }, {
+      "type" : "string/number",
+      "name" : "valid_from",
+      "description" : "Timestamp when the credential becomes valid (ISO format or epoch milliseconds)",
+      "required" : true
+    }, {
+      "type" : "string/number",
+      "name" : "valid_until",
+      "description" : "Timestamp when the credential expires (ISO format or epoch milliseconds)",
+      "required" : true
+    }, {
+      "type" : "string",
+      "name" : "security_principal",
+      "description" : "The security principal (e.g., username, token, API key)",
+      "required" : true
+    }, {
+      "type" : "string",
+      "name" : "security_credentials",
+      "description" : "The security credentials (e.g., hashed password, null for token-based auth)",
+      "required" : false
+    } ]
+  }, {
+    "name" : "auth/expireOne",
+    "description" : "Expires a specific credential for a user and credential type",
+    "params" : [ {
+      "type" : "number",
+      "name" : "user_id",
+      "description" : "The user's ID",
+      "required" : true
+    }, {
+      "type" : "string",
+      "name" : "credential_type_code",
+      "description" : "The credential type code",
+      "required" : true
+    }, {
+      "type" : "string",
+      "name" : "security_principal",
+      "description" : "The security principal to expire",
+      "required" : true
+    } ]
+  }, {
+    "name" : "auth/expireAll",
+    "description" : "Expires all valid credentials for a user and credential type",
+    "params" : [ {
+      "type" : "number",
+      "name" : "user_id",
+      "description" : "The user's ID",
+      "required" : true
+    }, {
+      "type" : "string",
+      "name" : "credential_type_code",
+      "description" : "The credential type code",
+      "required" : true
+    } ]
+  }, {
+    "name" : "auth/verify",
+    "description" : "Verifies a credential and returns the user ID if valid and not expired",
+    "params" : [ {
+      "type" : "string",
+      "name" : "credential_type_code",
+      "description" : "The credential type code",
+      "required" : true
+    }, {
+      "type" : "string",
+      "name" : "security_principal",
+      "description" : "The security principal",
+      "required" : true
+    }, {
+      "type" : "string",
+      "name" : "security_credentials",
+      "description" : "The security credentials to verify (null for credential types without credentials)",
+      "required" : false
+    } ]
+  }, {
+    "name" : "authorization/createRole",
+    "description" : "Creates a new role in the system",
+    "params" : [ {
+      "type" : "object",
+      "name" : "role",
+      "description" : "Role object containing code and name",
+      "required" : true
+    } ]
+  }, {
+    "name" : "authorization/updateRole",
+    "description" : "Updates an existing role's information",
+    "params" : [ {
+      "type" : "object",
+      "name" : "role",
+      "description" : "Role object containing id, code, and name",
+      "required" : true
+    } ]
+  }, {
+    "name" : "authorization/authorize",
+    "description" : "Authorizes a user to have a specific role for a specified time period",
+    "params" : [ {
+      "type" : "number",
+      "name" : "user_id",
+      "description" : "The user's ID",
+      "required" : true
+    }, {
+      "type" : "number",
+      "name" : "role_id",
+      "description" : "The role's ID",
+      "required" : true
+    }, {
+      "type" : "string/number",
+      "name" : "valid_from",
+      "description" : "Timestamp when the authorization becomes valid (ISO format or epoch milliseconds)",
+      "required" : true
+    }, {
+      "type" : "string/number",
+      "name" : "valid_until",
+      "description" : "Timestamp when the authorization expires (ISO format or epoch milliseconds)",
+      "required" : true
+    } ]
+  }, {
+    "name" : "authorization/deauthorize",
+    "description" : "Removes all authorizations for a specific user and role",
+    "params" : [ {
+      "type" : "number",
+      "name" : "user_id",
+      "description" : "The user's ID",
+      "required" : true
+    }, {
+      "type" : "number",
+      "name" : "role_id",
+      "description" : "The role's ID",
+      "required" : true
+    } ]
+  }, {
+    "name" : "authorization/isUserInRole",
+    "description" : "Checks if a user currently has a specific role",
+    "params" : [ {
+      "type" : "number",
+      "name" : "user_id",
+      "description" : "The user's ID",
+      "required" : true
+    }, {
+      "type" : "number",
+      "name" : "role_id",
+      "description" : "The role's ID",
+      "required" : true
+    } ]
+  }, {
+    "name" : "authorization/isUserInAnyRoles",
+    "description" : "Checks if a user currently has any of the specified roles",
+    "params" : [ {
+      "type" : "number",
+      "name" : "user_id",
+      "description" : "The user's ID",
+      "required" : true
+    }, {
+      "type" : "array",
+      "name" : "role_ids",
+      "description" : "An array of role IDs to check",
+      "required" : true
+    } ]
+  }, {
+    "name" : "authorization/isUserInAllRoles",
+    "description" : "Checks if a user currently has all of the specified roles",
+    "params" : [ {
+      "type" : "number",
+      "name" : "user_id",
+      "description" : "The user's ID",
+      "required" : true
+    }, {
+      "type" : "array",
+      "name" : "role_ids",
+      "description" : "An array of role IDs to check",
+      "required" : true
+    } ]
+  }, {
+    "name" : "authorization/addFunctionToRole",
+    "description" : "Links a function to a role",
+    "params" : [ {
+      "type" : "number",
+      "name" : "role_id",
+      "description" : "The role's ID",
+      "required" : true
+    }, {
+      "type" : "number",
+      "name" : "function_id",
+      "description" : "The function's ID",
+      "required" : true
+    } ]
+  }, {
+    "name" : "authorization/removeFunctionFromRole",
+    "description" : "Unlinks a function from a role",
+    "params" : [ {
+      "type" : "number",
+      "name" : "role_id",
+      "description" : "The role's ID",
+      "required" : true
+    }, {
+      "type" : "number",
+      "name" : "function_id",
+      "description" : "The function's ID",
+      "required" : true
+    } ]
+  }, {
+    "name" : "authorization/getFunctionsByRole",
+    "description" : "Retrieves all functions linked to a role",
+    "params" : [ {
+      "type" : "number",
+      "name" : "role_id",
+      "description" : "The role's ID",
+      "required" : true
+    } ]
+  }, {
+    "name" : "authorization/getMenuTree",
+    "description" : "Retrieves the menu tree for a user based on their authorized functions",
+    "params" : [ {
+      "type" : "number",
+      "name" : "user_id",
+      "description" : "The user's ID",
+      "required" : true
+    } ]
+  }, {
+    "name" : "generic/createFunction",
+    "description" : "Creates a new function in the system",
+    "params" : [ {
+      "type" : "object",
+      "name" : "function",
+      "description" : "Function object containing name and optionally url",
+      "required" : true
+    } ]
+  }, {
+    "name" : "generic/updateFunction",
+    "description" : "Updates an existing function",
+    "params" : [ {
+      "type" : "object",
+      "name" : "function",
+      "description" : "Function object containing id, name, and optionally url",
+      "required" : true
+    } ]
+  }, {
+    "name" : "generic/createMenu",
+    "description" : "Creates a new menu entry",
+    "params" : [ {
+      "type" : "object",
+      "name" : "menu",
+      "description" : "Menu object containing function_id and optionally parent_id",
+      "required" : true
+    } ]
+  }, {
+    "name" : "generic/updateMenu",
+    "description" : "Updates an existing menu entry",
+    "params" : [ {
+      "type" : "object",
+      "name" : "menu",
+      "description" : "Menu object containing id, function_id, and optionally parent_id",
+      "required" : true
+    } ]
+  }, {
+    "name" : "generic/getMenuTree",
+    "description" : "Retrieves the complete menu tree",
+    "params" : [ ]
+  } ],
+  "jsonrpc" : "2.0",
+  "title" : "JSON-RPC Service Schema",
+  "version" : "1.0.0"
+}
