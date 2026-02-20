@@ -2,11 +2,13 @@ package com.github.dgdevel.core.server;
 
 import com.github.dgdevel.core.db.DatabaseManager;
 import com.github.dgdevel.core.jsonrpc.JsonRpcHandler;
+import com.github.dgdevel.core.msgpack.MsgPackHandler;
 import com.github.dgdevel.core.registry.AuthenticationRegistry;
 import com.github.dgdevel.core.registry.AuthorizationRegistry;
 import com.github.dgdevel.core.registry.GenericRegistry;
 import com.github.dgdevel.core.registry.UserRegistry;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -17,19 +19,28 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.LengthFieldPrepender;
 
 public class Server {
-    private final int port;
+    private final int jsonRpcPort;
+    private final int msgPackPort;
     private final String dbUrl;
     private final DatabaseManager databaseManager;
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
-    private Channel channel;
+    private Channel jsonRpcChannel;
+    private Channel msgPackChannel;
 
-    public Server(int port, String dbUrl) {
-        this.port = port;
+    public Server(int jsonRpcPort, int msgPackPort, String dbUrl) {
+        this.jsonRpcPort = jsonRpcPort;
+        this.msgPackPort = msgPackPort;
         this.dbUrl = dbUrl;
         this.databaseManager = new DatabaseManager(dbUrl);
+    }
+
+    public Server(int port, String dbUrl) {
+        this(port, port + 1, dbUrl);
     }
 
     public void start() throws Exception {
@@ -39,8 +50,13 @@ public class Server {
         workerGroup = new NioEventLoopGroup();
 
         try {
-            ServerBootstrap b = new ServerBootstrap();
-            b.option(ChannelOption.SO_BACKLOG, 1024)
+            final UserRegistry userRegistry = new UserRegistry(databaseManager.getConnection());
+            final AuthenticationRegistry authenticationRegistry = new AuthenticationRegistry(databaseManager.getConnection());
+            final AuthorizationRegistry authorizationRegistry = new AuthorizationRegistry(databaseManager.getConnection());
+            final GenericRegistry genericRegistry = new GenericRegistry(databaseManager.getConnection());
+
+            ServerBootstrap jsonRpcBootstrap = new ServerBootstrap();
+            jsonRpcBootstrap.option(ChannelOption.SO_BACKLOG, 1024)
              .group(bossGroup, workerGroup)
              .channel(NioServerSocketChannel.class)
              .childHandler(new ChannelInitializer<SocketChannel>() {
@@ -52,15 +68,35 @@ public class Server {
                         ch.pipeline().addLast(
                             new JsonRpcHandler(
                                 databaseManager,
-                                new UserRegistry(databaseManager.getConnection()),
-                                new AuthenticationRegistry(databaseManager.getConnection()),
-                                new AuthorizationRegistry(databaseManager.getConnection()),
-                                new GenericRegistry(databaseManager.getConnection())));
+                                userRegistry,
+                                authenticationRegistry,
+                                authorizationRegistry,
+                                genericRegistry));
                    }
-             });
+              });
 
-            channel = b.bind(port).sync().channel();
-            System.out.println("JSON-RPC Server started on port " + port + "\nDatabase url: " + dbUrl);
+            ServerBootstrap msgPackBootstrap = new ServerBootstrap();
+            msgPackBootstrap.option(ChannelOption.SO_BACKLOG, 1024)
+             .group(bossGroup, workerGroup)
+             .channel(NioServerSocketChannel.class)
+             .childHandler(new ChannelInitializer<SocketChannel>() {
+                   @Override
+                   protected void initChannel(SocketChannel ch) {
+                       ch.pipeline().addLast(new MsgPackHandler(
+                           databaseManager,
+                           userRegistry,
+                           authenticationRegistry,
+                           authorizationRegistry,
+                           genericRegistry));
+                   }
+              });
+
+            jsonRpcChannel = jsonRpcBootstrap.bind(jsonRpcPort).sync().channel();
+            System.out.println("JSON-RPC Server started on port " + jsonRpcPort);
+
+            msgPackChannel = msgPackBootstrap.bind(msgPackPort).sync().channel();
+            System.out.println("MessagePack Server started on port " + msgPackPort);
+            System.out.println("Database url: " + dbUrl);
 
         } catch (Exception e) {
             shutdown();
@@ -69,8 +105,11 @@ public class Server {
     }
 
     public void shutdown() {
-        if (channel != null) {
-            channel.close();
+        if (jsonRpcChannel != null) {
+            jsonRpcChannel.close();
+        }
+        if (msgPackChannel != null) {
+            msgPackChannel.close();
         }
         if (workerGroup != null) {
             workerGroup.shutdownGracefully();
@@ -86,10 +125,11 @@ public class Server {
     }
 
     public static void main(String[] args) throws Exception {
-        int port = args.length > 0 ? Integer.parseInt(args[0]) : 8080;
-        String dbUrl = args.length > 1 ? args[1] : "jdbc:h2:mem:test";
+        int jsonRpcPort = args.length > 0 ? Integer.parseInt(args[0]) : 8080;
+        int msgPackPort = args.length > 1 ? Integer.parseInt(args[1]) : jsonRpcPort + 1;
+        String dbUrl = args.length > 2 ? args[2] : "jdbc:h2:mem:test";
 
-        Server server = new Server(port, dbUrl);
+        Server server = new Server(jsonRpcPort, msgPackPort, dbUrl);
         server.start();
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -97,10 +137,14 @@ public class Server {
             server.shutdown();
         }));
 
-        server.getChannel().closeFuture().sync();
+        server.getJsonRpcChannel().closeFuture().sync();
     }
 
-    public io.netty.channel.Channel getChannel() {
-        return channel;
+    public io.netty.channel.Channel getJsonRpcChannel() {
+        return jsonRpcChannel;
+    }
+
+    public io.netty.channel.Channel getMsgPackChannel() {
+        return msgPackChannel;
     }
 }

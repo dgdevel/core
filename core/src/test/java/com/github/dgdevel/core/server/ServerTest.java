@@ -758,7 +758,7 @@ public class ServerTest {
 
     @Test
     public void testGetChannel() throws Exception {
-        assertNotNull(server.getChannel());
+        assertNotNull(server.getJsonRpcChannel());
     }
 
     @Test

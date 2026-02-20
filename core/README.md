@@ -2,6 +2,8 @@
 
 A JSON-RPC service built with Java, Maven, Netty, and H2 database.
 
+The server now supports both JSON-RPC (HTTP) and MessagePack (TCP) protocols.
+
 ## Requirements
 
 - Java 25
@@ -17,7 +19,7 @@ mvn clean compile
 mvn exec:java -Dexec.mainClass="com.github.dgdevel.core.Server"
 ```
 
-The server starts on port 8080 by default.
+The server starts on port 8080 for JSON-RPC (HTTP) and port 8081 for MessagePack (TCP) by default.
 
 ### Run Tests
 
@@ -143,11 +145,40 @@ curl -X POST http://localhost:8080 \
   -d '{"jsonrpc":"2.0","method":"generic/ping","params":{},"id":1}'
 ```
 
+### MessagePack Protocol
+
+The server also supports MessagePack over TCP on a separate port (default 8081).
+
+All methods available via JSON-RPC are also available via MessagePack. The MessagePack protocol uses the same JSON-RPC 2.0 request/response structure but encoded in MessagePack binary format.
+
+**MessagePack Request Format:**
+```
+[
+  "2.0",           // jsonrpc version
+  "method/name",    // method name
+  [param1, ...],   // parameters as array
+  1                // request id
+]
+```
+
+**MessagePack Response Format:**
+```
+[
+  "2.0",           // jsonrpc version
+  {...result},      // result (or nil on error)
+  [code, msg] or nil,  // error array or nil if success
+  1                // request id
+]
+```
+
+See the `core-client/README.md` for examples using the MessagePack client.
+
 ## Dependencies
 
 - Netty 4.1.119.Final
 - H2 Database 2.3.232
 - Jackson 2.18.3
+- MessagePack 0.9.8
 - JUnit 5.12.0
 - JaCoCo 0.8.13
 - Checkstyle 3.6.0

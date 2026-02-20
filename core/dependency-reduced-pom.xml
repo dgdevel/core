@@ -148,6 +148,7 @@
   <properties>
     <maven.compiler.target>25</maven.compiler.target>
     <netty.version>4.1.119.Final</netty.version>
+    <msgpack.version>0.9.8</msgpack.version>
     <maven.compiler.source>25</maven.compiler.source>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <h2.version>2.3.232</h2.version>
