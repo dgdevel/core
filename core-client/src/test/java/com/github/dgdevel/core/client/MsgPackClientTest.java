@@ -18,7 +18,7 @@ public class MsgPackClientTest {
 
     @BeforeEach
     public void setUp() throws Exception {
-        server = new Server(jsonRpcTestPort, msgPackTestPort, testDbUrl);
+        server = new Server(jsonRpcTestPort, msgPackTestPort, testDbUrl, null, null);
         server.start();
     }
 

@@ -21,6 +21,7 @@ import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 
 public class Server {
+    private final String bindAddress;
     private final int jsonRpcPort;
     private final int msgPackPort;
     private final String dbUrl;
@@ -30,19 +31,24 @@ public class Server {
     private Channel jsonRpcChannel;
     private Channel msgPackChannel;
 
-    public Server(int jsonRpcPort, int msgPackPort, String dbUrl, String dbUsername, String dbPassword) {
+    public Server(String bindAddress, int jsonRpcPort, int msgPackPort, String dbUrl, String dbUsername, String dbPassword) {
+        this.bindAddress = bindAddress;
         this.jsonRpcPort = jsonRpcPort;
         this.msgPackPort = msgPackPort;
         this.dbUrl = dbUrl;
         this.databaseManager = new DatabaseManager(dbUrl, dbUsername, dbPassword);
     }
 
+    public Server(int jsonRpcPort, int msgPackPort, String dbUrl, String dbUsername, String dbPassword) {
+        this("0.0.0.0", jsonRpcPort, msgPackPort, dbUrl, dbUsername, dbPassword);
+    }
+
     public Server(int port, String dbUrl, String dbUsername, String dbPassword) {
-        this(port, port + 1, dbUrl, dbUsername, dbPassword);
+        this("0.0.0.0", port, port + 1, dbUrl, dbUsername, dbPassword);
     }
 
     public Server(int port, String dbUrl) {
-        this(port, port + 1, dbUrl, null, null);
+        this("0.0.0.0", port, port + 1, dbUrl, null, null);
     }
 
     public void start() throws Exception {
@@ -93,10 +99,10 @@ public class Server {
                    }
               });
 
-            jsonRpcChannel = jsonRpcBootstrap.bind(jsonRpcPort).sync().channel();
+            jsonRpcChannel = jsonRpcBootstrap.bind(bindAddress, jsonRpcPort).sync().channel();
             System.out.println("JSON-RPC Server started on port " + jsonRpcPort);
 
-            msgPackChannel = msgPackBootstrap.bind(msgPackPort).sync().channel();
+            msgPackChannel = msgPackBootstrap.bind(bindAddress, msgPackPort).sync().channel();
             System.out.println("MessagePack Server started on port " + msgPackPort);
             System.out.println("Database url: " + dbUrl);
 
@@ -129,7 +135,7 @@ public class Server {
     public static void main(String[] args) throws Exception {
         Config config = Config.load(args);
 
-        Server server = new Server(config.getJsonRpcPort(), config.getMsgPackPort(), config.getDbUrl(), config.getDbUsername(), config.getDbPassword());
+        Server server = new Server(config.getBindAddress(), config.getJsonRpcPort(), config.getMsgPackPort(), config.getDbUrl(), config.getDbUsername(), config.getDbPassword());
         server.start();
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
