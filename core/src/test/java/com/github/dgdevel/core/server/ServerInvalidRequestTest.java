@@ -17,7 +17,7 @@ public class ServerInvalidRequestTest {
 
     @BeforeEach
     public void setUp() throws Exception {
-        server = new Server(testPort, testDbUrl);
+        server = new Server(testPort, testDbUrl, null, null);
         server.start();
     }
 

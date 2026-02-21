@@ -21,7 +21,7 @@ public class AuthorizationRegistryTest {
 
     @BeforeEach
     public void setUp() throws SQLException {
-        databaseManager = new DatabaseManager("jdbc:h2:mem:testauth;DB_CLOSE_DELAY=-1");
+        databaseManager = new DatabaseManager("jdbc:h2:mem:testauth;DB_CLOSE_DELAY=-1", null, null);
         databaseManager.connect();
         userRegistry = new UserRegistry(databaseManager.getConnection());
         authorizationRegistry = new AuthorizationRegistry(databaseManager.getConnection());

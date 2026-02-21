@@ -16,7 +16,7 @@ The server now supports both JSON-RPC (HTTP) and MessagePack (TCP) protocols.
 ```bash
 cd core
 mvn clean compile
-mvn exec:java -Dexec.mainClass="com.github.dgdevel.core.Server"
+mvn exec:java -Dexec.mainClass="com.github.dgdevel.core.server.Server"
 ```
 
 The server starts on port 8080 for JSON-RPC (HTTP) and port 8081 for MessagePack (TCP) by default.

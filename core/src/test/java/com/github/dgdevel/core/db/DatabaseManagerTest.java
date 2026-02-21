@@ -15,7 +15,7 @@ public class DatabaseManagerTest {
 
     @BeforeEach
     public void setUp() throws SQLException {
-        databaseManager = new DatabaseManager("jdbc:h2:mem:testdbmgr;DB_CLOSE_DELAY=-1");
+        databaseManager = new DatabaseManager("jdbc:h2:mem:testdbmgr;DB_CLOSE_DELAY=-1", null, null);
         databaseManager.connect();
     }
 
@@ -132,13 +132,13 @@ public class DatabaseManagerTest {
 
     @Test
     public void testDisconnectNullConnection() throws SQLException {
-        DatabaseManager manager = new DatabaseManager("jdbc:h2:mem:test2");
+        DatabaseManager manager = new DatabaseManager("jdbc:h2:mem:test2", null, null);
         manager.disconnect();
     }
 
     @Test
     public void testConnectAndDisconnect() throws SQLException {
-        DatabaseManager manager = new DatabaseManager("jdbc:h2:mem:test3");
+        DatabaseManager manager = new DatabaseManager("jdbc:h2:mem:test3", null, null);
         manager.connect();
         assertNotNull(manager.getCurrentTimestamp());
         manager.disconnect();

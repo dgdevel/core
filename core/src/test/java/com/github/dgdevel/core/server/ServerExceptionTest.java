@@ -8,13 +8,13 @@ public class ServerExceptionTest {
 
     @Test
     public void testServerConstructor() {
-        Server server = new Server(9999, "jdbc:h2:mem:test");
+        Server server = new Server(9999, "jdbc:h2:mem:test", null, null);
         assertNotNull(server);
     }
 
     @Test
     public void testServerShutdownWithoutStart() {
-        Server server = new Server(9999, "jdbc:h2:mem:test");
+        Server server = new Server(9999, "jdbc:h2:mem:test", null, null);
         assertDoesNotThrow(server::shutdown);
     }
 }

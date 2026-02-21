@@ -1,5 +1,6 @@
 package com.github.dgdevel.core.server;
 
+import com.github.dgdevel.core.config.Config;
 import com.github.dgdevel.core.db.DatabaseManager;
 import com.github.dgdevel.core.jsonrpc.JsonRpcHandler;
 import com.github.dgdevel.core.msgpack.MsgPackHandler;
@@ -29,15 +30,19 @@ public class Server {
     private Channel jsonRpcChannel;
     private Channel msgPackChannel;
 
-    public Server(int jsonRpcPort, int msgPackPort, String dbUrl) {
+    public Server(int jsonRpcPort, int msgPackPort, String dbUrl, String dbUsername, String dbPassword) {
         this.jsonRpcPort = jsonRpcPort;
         this.msgPackPort = msgPackPort;
         this.dbUrl = dbUrl;
-        this.databaseManager = new DatabaseManager(dbUrl);
+        this.databaseManager = new DatabaseManager(dbUrl, dbUsername, dbPassword);
+    }
+
+    public Server(int port, String dbUrl, String dbUsername, String dbPassword) {
+        this(port, port + 1, dbUrl, dbUsername, dbPassword);
     }
 
     public Server(int port, String dbUrl) {
-        this(port, port + 1, dbUrl);
+        this(port, port + 1, dbUrl, null, null);
     }
 
     public void start() throws Exception {
@@ -122,11 +127,9 @@ public class Server {
     }
 
     public static void main(String[] args) throws Exception {
-        int jsonRpcPort = args.length > 0 ? Integer.parseInt(args[0]) : 8080;
-        int msgPackPort = args.length > 1 ? Integer.parseInt(args[1]) : jsonRpcPort + 1;
-        String dbUrl = args.length > 2 ? args[2] : "jdbc:h2:mem:test";
+        Config config = Config.load(args);
 
-        Server server = new Server(jsonRpcPort, msgPackPort, dbUrl);
+        Server server = new Server(config.getJsonRpcPort(), config.getMsgPackPort(), config.getDbUrl(), config.getDbUsername(), config.getDbPassword());
         server.start();
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {

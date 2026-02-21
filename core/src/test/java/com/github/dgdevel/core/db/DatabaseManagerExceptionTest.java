@@ -13,7 +13,7 @@ public class DatabaseManagerExceptionTest {
 
     @BeforeEach
     public void setUp() throws SQLException {
-        databaseManager = new DatabaseManager("jdbc:h2:mem:test");
+        databaseManager = new DatabaseManager("jdbc:h2:mem:test", null, null);
         databaseManager.connect();
     }
 

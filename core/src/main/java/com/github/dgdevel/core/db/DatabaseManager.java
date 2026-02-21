@@ -19,13 +19,21 @@ import java.util.Map;
 public class DatabaseManager {
     private Connection connection;
     private final String dbUrl;
+    private final String dbUsername;
+    private final String dbPassword;
 
-    public DatabaseManager(String dbUrl) {
+    public DatabaseManager(String dbUrl, String dbUsername, String dbPassword) {
         this.dbUrl = dbUrl;
+        this.dbUsername = dbUsername;
+        this.dbPassword = dbPassword;
     }
 
     public void connect() throws SQLException {
-        connection = DriverManager.getConnection(dbUrl);
+        if (dbUsername != null && !dbUsername.isEmpty()) {
+            connection = DriverManager.getConnection(dbUrl, dbUsername, dbPassword);
+        } else {
+            connection = DriverManager.getConnection(dbUrl);
+        }
         initializeSchema();
     }
 
