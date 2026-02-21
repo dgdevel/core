@@ -17,7 +17,8 @@ import java.util.List;
 import java.util.Map;
 
 public class Client {
-    private static final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    private static final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule())
+        .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     public static void main(String[] args) {
         if (args.length == 0) {

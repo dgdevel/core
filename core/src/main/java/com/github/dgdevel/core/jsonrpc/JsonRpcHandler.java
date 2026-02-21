@@ -721,14 +721,22 @@ public class JsonRpcHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (obj instanceof Timestamp) {
             return (Timestamp) obj;
         }
+        if (obj instanceof java.time.Instant) {
+            return Timestamp.from((java.time.Instant) obj);
+        }
         if (obj instanceof String) {
+            String str = (String) obj;
             try {
-                return Timestamp.valueOf((String) obj);
+                return Timestamp.valueOf(str);
             } catch (IllegalArgumentException e) {
                 try {
-                    return new Timestamp(Long.parseLong((String) obj));
+                    return new Timestamp(Long.parseLong(str));
                 } catch (NumberFormatException ex) {
-                    throw new IllegalArgumentException("Invalid timestamp format: " + obj);
+                    try {
+                        return Timestamp.from(java.time.Instant.parse(str));
+                    } catch (java.time.format.DateTimeParseException ex2) {
+                        throw new IllegalArgumentException("Invalid timestamp format: " + obj);
+                    }
                 }
             }
         }
