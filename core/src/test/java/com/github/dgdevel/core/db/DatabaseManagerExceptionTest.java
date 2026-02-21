@@ -1,6 +1,5 @@
 package com.github.dgdevel.core.db;
 
-import com.github.dgdevel.core.db.DatabaseManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

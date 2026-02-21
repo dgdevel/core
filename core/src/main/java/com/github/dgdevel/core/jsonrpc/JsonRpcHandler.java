@@ -1,12 +1,8 @@
 package com.github.dgdevel.core.jsonrpc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.type.TypeFactory;
-import com.github.dgdevel.core.common.PaginatedList;
 import com.github.dgdevel.core.common.Paginator;
 import com.github.dgdevel.core.db.DatabaseManager;
-import com.github.dgdevel.core.model.Address;
-import com.github.dgdevel.core.model.AddressType;
 import com.github.dgdevel.core.model.Function;
 import com.github.dgdevel.core.model.Menu;
 import com.github.dgdevel.core.model.Role;
@@ -27,7 +23,6 @@ import io.netty.util.CharsetUtil;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

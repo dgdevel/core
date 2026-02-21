@@ -8,8 +8,9 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
-import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -123,7 +124,7 @@ public class Client {
     }
 
     private static String fetchSchema(String serverUrl) throws Exception {
-        URL url = new URL(serverUrl + "/schema");
+        URL url = URI.create(serverUrl + "/schema").toURL();
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setRequestMethod("GET");
 
@@ -183,9 +184,9 @@ public class Client {
                     return value;
                 case "string/number":
                     try {
-                        return new Timestamp(Long.parseLong(value));
+                        return Instant.ofEpochMilli(Long.parseLong(value));
                     } catch (NumberFormatException e) {
-                        return Timestamp.valueOf(value);
+                        return Instant.parse(value);
                     }
                 case "array":
                     return objectMapper.readValue(value, List.class);
@@ -200,7 +201,7 @@ public class Client {
     }
 
     private static String sendRequest(String serverUrl, String requestJson) throws Exception {
-        URL url = new URL(serverUrl);
+        URL url = URI.create(serverUrl).toURL();
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setRequestMethod("POST");
         connection.setRequestProperty("Content-Type", "application/json");

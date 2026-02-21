@@ -1,7 +1,5 @@
 package com.github.dgdevel.core.client;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessagePacker;
@@ -223,80 +221,5 @@ public class MsgPackClient {
         } else {
             throw new IllegalArgumentException("Unsupported MessagePack format: " + valueType);
         }
-    }
-
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public static class MsgPackRequest {
-        @JsonProperty("jsonrpc")
-        private final String jsonrpc = "2.0";
-
-        @JsonProperty("method")
-        private final String method;
-
-        @JsonProperty("params")
-        private final Object[] params;
-
-        @JsonProperty("id")
-        private final Integer id = 1;
-
-        public MsgPackRequest(String method, Object[] params) {
-            this.method = method;
-            this.params = params;
-        }
-
-        public String getJsonrpc() {
-            return jsonrpc;
-        }
-
-        public String getMethod() {
-            return method;
-        }
-
-        public Object[] getParams() {
-            return params;
-        }
-
-        public Integer getId() {
-            return id;
-        }
-    }
-
-    public static class Schema {
-        @JsonProperty("jsonrpc")
-        public String jsonrpc;
-
-        @JsonProperty("title")
-        public String title;
-
-        @JsonProperty("version")
-        public String version;
-
-        @JsonProperty("methods")
-        public List<MethodDescriptor> methods;
-    }
-
-    public static class MethodDescriptor {
-        @JsonProperty("name")
-        public String name;
-
-        @JsonProperty("description")
-        public String description;
-
-        @JsonProperty("params")
-        public List<ParamDescriptor> params;
-    }
-
-    public static class ParamDescriptor {
-        @JsonProperty("name")
-        public String name;
-
-        @JsonProperty("type")
-        public String type;
-
-        @JsonProperty("required")
-        public Boolean required;
-
-        @JsonProperty("description")
-        public String description;
     }
 }
