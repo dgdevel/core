@@ -105,14 +105,47 @@ public class GenericRegistry {
     }
   }
 
+  public Function findFunctionByName(String name) throws SQLException {
+    String sql = "SELECT id, name, url FROM functions WHERE name = ?";
+    try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+      stmt.setString(1, name);
+      try (ResultSet rs = stmt.executeQuery()) {
+        if (rs.next()) {
+          Function function = new Function();
+          function.setId(rs.getLong("id"));
+          function.setName(rs.getString("name"));
+          function.setUrl(rs.getString("url"));
+          return function;
+        }
+      }
+    }
+    return null;
+  }
+
+  public List<Function> getAllFunctions() throws SQLException {
+    String sql = "SELECT id, name, url FROM functions ORDER BY id";
+    List<Function> functions = new ArrayList<>();
+    try (PreparedStatement stmt = connection.prepareStatement(sql);
+         ResultSet rs = stmt.executeQuery()) {
+      while (rs.next()) {
+        Function function = new Function();
+        function.setId(rs.getLong("id"));
+        function.setName(rs.getString("name"));
+        function.setUrl(rs.getString("url"));
+        functions.add(function);
+      }
+    }
+    return functions;
+  }
+
   public List<Menu> getMenuTree() throws SQLException {
     String sql =
         "SELECT m.id, m.function_id, m.parent_id, f.id as func_id, f.name as func_name, f.url as func_url "
             + "FROM menu m LEFT JOIN functions f ON m.function_id = f.id ORDER BY m.id";
-    
+
     Map<Long, Menu> menuMap = new HashMap<>();
     List<Menu> rootMenus = new ArrayList<>();
-    
+
     try (PreparedStatement stmt = connection.prepareStatement(sql);
          ResultSet rs = stmt.executeQuery()) {
       while (rs.next()) {
@@ -120,7 +153,7 @@ public class GenericRegistry {
         menu.setId(rs.getLong("id"));
         menu.setFunctionId((Long) rs.getObject("function_id"));
         menu.setParentId((Long) rs.getObject("parent_id"));
-        
+
         Long funcId = (Long) rs.getObject("func_id");
         if (funcId != null) {
           Function function = new Function();
@@ -129,11 +162,11 @@ public class GenericRegistry {
           function.setUrl(rs.getString("func_url"));
           menu.setFunction(function);
         }
-        
+
         menuMap.put(menu.getId(), menu);
       }
     }
-    
+
     for (Menu menu : menuMap.values()) {
       if (menu.getParentId() == null) {
         rootMenus.add(menu);
@@ -144,7 +177,7 @@ public class GenericRegistry {
         }
       }
     }
-    
+
     return rootMenus;
   }
 }

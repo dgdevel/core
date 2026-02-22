@@ -63,6 +63,7 @@ public class AuthenticationRegistry {
       stmt.setString(5, securityPrincipal);
       stmt.setString(6, securityCredentials);
       int affectedRows = stmt.executeUpdate();
+      System.out.println("[AuthRegistry.create] affectedRows=" + affectedRows + ", userId=" + userId + ", principal=" + securityPrincipal);
       if (affectedRows == 0) {
         throw new SQLException("Creating credential failed, no rows affected.");
       }
@@ -92,6 +93,7 @@ public class AuthenticationRegistry {
       stmt.setLong(2, credentialTypeId);
       stmt.setString(3, securityPrincipal);
       int affectedRows = stmt.executeUpdate();
+      System.out.println("[AuthRegistry.expireOne] affectedRows=" + affectedRows + ", userId=" + userId + ", principal=" + securityPrincipal);
       return affectedRows > 0;
     }
   }

@@ -877,4 +877,123 @@ public class AuthorizationRegistryTest {
         assertEquals(parentId, child.getParentId());
         assertEquals("ADMIN", child.getParentCode());
     }
+
+    @Test
+    public void testGetMenuTreeWithAuthorization() throws SQLException {
+        com.github.dgdevel.core.registry.UserRegistry userRegistry = new com.github.dgdevel.core.registry.UserRegistry(databaseManager.getConnection());
+        com.github.dgdevel.core.registry.AuthenticationRegistry authenticationRegistry = new com.github.dgdevel.core.registry.AuthenticationRegistry(databaseManager.getConnection());
+        com.github.dgdevel.core.registry.GenericRegistry genericRegistry = new com.github.dgdevel.core.registry.GenericRegistry(databaseManager.getConnection());
+
+        // Register credential type
+        authenticationRegistry.registerType("PASSWORD", false, false);
+
+        // Create admin user
+        com.github.dgdevel.core.model.User user = new com.github.dgdevel.core.model.User();
+        user.setDisplayName("admin");
+        user.setActive(true);
+        Long userId = userRegistry.create(user);
+        assertEquals(1L, userId);
+
+        // Create system-admin role
+        com.github.dgdevel.core.model.Role role = new com.github.dgdevel.core.model.Role();
+        role.setCode("system-admin");
+        role.setName("System Administrator");
+        Long roleId = authorizationRegistry.create(role);
+        assertNotNull(roleId);
+
+        // Authorize user to role
+        Timestamp validFrom = new Timestamp(System.currentTimeMillis() - 1000);
+        Timestamp validUntil = new Timestamp(System.currentTimeMillis() + 86400000);
+        authorizationRegistry.authorize(userId, roleId, validFrom, validUntil);
+
+        // Create functions
+        com.github.dgdevel.core.model.Function devicesFunc = new com.github.dgdevel.core.model.Function();
+        devicesFunc.setName("Devices");
+        devicesFunc.setUrl("/devices");
+        Long devicesFuncId = genericRegistry.createFunction(devicesFunc);
+        assertNotNull(devicesFuncId);
+
+        com.github.dgdevel.core.model.Function deviceListFunc = new com.github.dgdevel.core.model.Function();
+        deviceListFunc.setName("Device List");
+        deviceListFunc.setUrl("/devices/list");
+        Long deviceListFuncId = genericRegistry.createFunction(deviceListFunc);
+        assertNotNull(deviceListFuncId);
+
+        // Create menu entries
+        com.github.dgdevel.core.model.Menu devicesMenu = new com.github.dgdevel.core.model.Menu();
+        devicesMenu.setFunctionId(devicesFuncId);
+        Long devicesMenuId = genericRegistry.createMenu(devicesMenu);
+        assertNotNull(devicesMenuId);
+
+        com.github.dgdevel.core.model.Menu deviceListMenu = new com.github.dgdevel.core.model.Menu();
+        deviceListMenu.setFunctionId(deviceListFuncId);
+        deviceListMenu.setParentId(devicesMenuId);
+        Long deviceListMenuId = genericRegistry.createMenu(deviceListMenu);
+        assertNotNull(deviceListMenuId);
+
+        // Link functions to role
+        authorizationRegistry.addFunctionToRole(roleId, devicesFuncId);
+        authorizationRegistry.addFunctionToRole(roleId, deviceListFuncId);
+
+        // Get menu tree for user
+        List<com.github.dgdevel.core.model.Menu> menuTree = authorizationRegistry.getMenuTree(userId);
+
+        assertNotNull(menuTree);
+        assertEquals(1, menuTree.size(), "Should have one root menu item");
+
+        com.github.dgdevel.core.model.Menu rootMenu = menuTree.get(0);
+        assertEquals(devicesMenuId, rootMenu.getId());
+        assertEquals(devicesFuncId, rootMenu.getFunctionId());
+        assertNotNull(rootMenu.getFunction());
+        assertEquals("Devices", rootMenu.getFunction().getName());
+
+        assertNotNull(rootMenu.getChildren());
+        assertEquals(1, rootMenu.getChildren().size());
+
+        com.github.dgdevel.core.model.Menu childMenu = rootMenu.getChildren().get(0);
+        assertEquals(deviceListMenuId, childMenu.getId());
+        assertEquals(deviceListFuncId, childMenu.getFunctionId());
+        assertNotNull(childMenu.getFunction());
+        assertEquals("Device List", childMenu.getFunction().getName());
+    }
+
+    @Test
+    public void testGetMenuTreeEmptyForUnauthorizedUser() throws SQLException {
+        DatabaseManager databaseManager2 = new DatabaseManager("jdbc:h2:mem:testauth2;DB_CLOSE_DELAY=-1", null, null);
+        databaseManager2.connect();
+        try {
+            com.github.dgdevel.core.registry.UserRegistry userRegistry = new com.github.dgdevel.core.registry.UserRegistry(databaseManager2.getConnection());
+            com.github.dgdevel.core.registry.GenericRegistry genericRegistry = new com.github.dgdevel.core.registry.GenericRegistry(databaseManager2.getConnection());
+            AuthorizationRegistry authRegistry = new AuthorizationRegistry(databaseManager2.getConnection());
+
+            // Create user without any authorization
+            com.github.dgdevel.core.model.User user = new com.github.dgdevel.core.model.User();
+            user.setDisplayName("regular-user");
+            user.setActive(true);
+            Long userId = userRegistry.create(user);
+            assertNotNull(userId);
+
+            // Create functions
+            com.github.dgdevel.core.model.Function devicesFunc = new com.github.dgdevel.core.model.Function();
+            devicesFunc.setName("Devices");
+            devicesFunc.setUrl("/devices");
+            Long devicesFuncId = genericRegistry.createFunction(devicesFunc);
+            assertNotNull(devicesFuncId);
+
+            // Create menu entries
+            com.github.dgdevel.core.model.Menu devicesMenu = new com.github.dgdevel.core.model.Menu();
+            devicesMenu.setFunctionId(devicesFuncId);
+            Long devicesMenuId = genericRegistry.createMenu(devicesMenu);
+            assertNotNull(devicesMenuId);
+
+            // Get menu tree for user - should be empty
+            List<com.github.dgdevel.core.model.Menu> menuTree = authRegistry.getMenuTree(userId);
+
+            assertNotNull(menuTree);
+            assertEquals(0, menuTree.size(), "Should have no menu items for unauthorized user");
+        } finally {
+            databaseManager2.cleanup();
+            databaseManager2.disconnect();
+        }
+    }
 }

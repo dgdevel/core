@@ -712,6 +712,31 @@ public class JsonRpcHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                     throw new RuntimeException("Generic error: " + e.getMessage(), e);
                 }
             });
+
+        registerMethod("generic/findFunctionByName",
+            "Finds a function by name",
+            List.of(
+                Map.of("name", "name", "type", "string", "required", true, "description", "The function name")
+            ),
+            params -> {
+                try {
+                    String name = objectMapper.convertValue(params[0], String.class);
+                    return genericRegistry.findFunctionByName(name);
+                } catch (Exception e) {
+                    throw new RuntimeException("Generic error: " + e.getMessage(), e);
+                }
+            });
+
+        registerMethod("generic/getAllFunctions",
+            "Retrieves all functions",
+            List.of(),
+            params -> {
+                try {
+                    return genericRegistry.getAllFunctions();
+                } catch (Exception e) {
+                    throw new RuntimeException("Generic error: " + e.getMessage(), e);
+                }
+            });
     }
 
     private Timestamp parseTimestamp(Object obj) {
@@ -798,16 +823,21 @@ public class JsonRpcHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     }
 
     private JsonRpcResponse handleRequest(JsonRpcRequest request) {
+        System.out.println("[JSON-RPC SERVER] Received: " + request.getMethod() + " - params: " + request.getParams());
         java.util.function.Function<Object[], Object> method = methods.get(request.getMethod());
         if (method == null) {
+            System.out.println("[JSON-RPC SERVER] Method not found: " + request.getMethod());
             return JsonRpcResponse.error(request.getId(), -32601, "Method not found");
         }
 
         try {
             Object paramsArray = convertParams(request.getParams());
             Object result = method.apply((Object[]) paramsArray);
+            System.out.println("[JSON-RPC SERVER] Response: " + request.getMethod() + " -> " + result);
             return JsonRpcResponse.success(request.getId(), result);
         } catch (Exception e) {
+            System.out.println("[JSON-RPC SERVER] Error: " + request.getMethod() + " - " + e.getMessage());
+            e.printStackTrace();
             return JsonRpcResponse.error(request.getId(), -32603, "Internal error: " + e.getMessage());
         }
     }

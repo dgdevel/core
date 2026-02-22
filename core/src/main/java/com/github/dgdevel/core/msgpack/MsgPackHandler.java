@@ -713,6 +713,31 @@ public class MsgPackHandler extends SimpleChannelInboundHandler<ByteBuf> {
                     throw new RuntimeException("Generic error: " + e.getMessage(), e);
                 }
             });
+
+        registerMethod("generic/findFunctionByName",
+            "Finds a function by name",
+            List.of(
+                Map.of("name", "name", "type", "string", "required", true, "description", "The function name")
+            ),
+            params -> {
+                try {
+                    String name = objectMapper.convertValue(params[0], String.class);
+                    return genericRegistry.findFunctionByName(name);
+                } catch (Exception e) {
+                    throw new RuntimeException("Generic error: " + e.getMessage(), e);
+                }
+            });
+
+        registerMethod("generic/getAllFunctions",
+            "Retrieves all functions",
+            List.of(),
+            params -> {
+                try {
+                    return genericRegistry.getAllFunctions();
+                } catch (Exception e) {
+                    throw new RuntimeException("Generic error: " + e.getMessage(), e);
+                }
+            });
     }
 
     private Timestamp parseTimestamp(Object obj) {
