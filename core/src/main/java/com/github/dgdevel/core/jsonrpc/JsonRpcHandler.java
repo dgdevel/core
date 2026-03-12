@@ -3,12 +3,15 @@ package com.github.dgdevel.core.jsonrpc;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.dgdevel.core.common.Paginator;
 import com.github.dgdevel.core.db.DatabaseManager;
+import com.github.dgdevel.core.model.File;
 import com.github.dgdevel.core.model.Function;
 import com.github.dgdevel.core.model.Menu;
+import com.github.dgdevel.core.model.Message;
 import com.github.dgdevel.core.model.Role;
 import com.github.dgdevel.core.model.User;
 import com.github.dgdevel.core.registry.AuthenticationRegistry;
 import com.github.dgdevel.core.registry.AuthorizationRegistry;
+import com.github.dgdevel.core.registry.FilesRegistry;
 import com.github.dgdevel.core.registry.GenericRegistry;
 import com.github.dgdevel.core.registry.UserRegistry;
 import io.netty.channel.ChannelHandlerContext;
@@ -36,6 +39,7 @@ public class JsonRpcHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private final AuthenticationRegistry authenticationRegistry;
     private final AuthorizationRegistry authorizationRegistry;
     private final GenericRegistry genericRegistry;
+    private final FilesRegistry filesRegistry;
 
     private static class MethodDescriptor {
         String name;
@@ -63,12 +67,14 @@ public class JsonRpcHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         UserRegistry userRegistry,
         AuthenticationRegistry authenticationRegistry,
         AuthorizationRegistry authorizationRegistry,
-        GenericRegistry genericRegistry) {
+        GenericRegistry genericRegistry,
+        FilesRegistry filesRegistry) {
         this.databaseManager = databaseManager;
         this.userRegistry = userRegistry;
         this.authenticationRegistry = authenticationRegistry;
         this.authorizationRegistry = authorizationRegistry;
         this.genericRegistry = genericRegistry;
+        this.filesRegistry = filesRegistry;
         registerMethods();
     }
 
@@ -301,6 +307,7 @@ public class JsonRpcHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             List.of(
                 Map.of("name", "user_id", "type", "number", "required", false, "description", "The user ID associated with the event (null for system events)"),
                 Map.of("name", "type", "type", "string", "required", true, "description", "The type of audit event (e.g., LOGIN, LOGOUT, SYSTEM)"),
+                Map.of("name", "remote_address", "type", "string", "required", true, "description", "The remote address of the client making the request"),
                 Map.of("name", "payload", "type", "string", "required", true, "description", "The payload data for the audit event")
             ),
             params -> {
@@ -308,8 +315,9 @@ public class JsonRpcHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                     Object[] paramArray = (Object[]) params;
                     Long userId = paramArray[0] != null ? ((Number) paramArray[0]).longValue() : null;
                     String typeCode = paramArray[1].toString();
-                    String payload = paramArray[2].toString();
-                    Long id = databaseManager.auditLog(userId, typeCode, payload);
+                    String remoteAddress = paramArray[2].toString();
+                    String payload = paramArray[3].toString();
+                    Long id = databaseManager.auditLog(userId, typeCode, payload, remoteAddress);
                     return Map.of("id", id);
                 } catch (Exception e) {
                     throw new RuntimeException("Database error: " + e.getMessage(), e);
@@ -737,6 +745,200 @@ public class JsonRpcHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                     throw new RuntimeException("Generic error: " + e.getMessage(), e);
                 }
             });
+
+        registerMethod("remote_endpoints/create",
+            "Creates a new remote endpoint",
+            List.of(
+                Map.of("name", "name", "type", "string", "required", true, "description", "The name of the remote endpoint")
+            ),
+            params -> {
+                try {
+                    Object[] paramArray = (Object[]) params;
+                    String name = paramArray[0].toString();
+                    Map<String, Long> result = databaseManager.createRemoteEndpoint(name);
+                    return result;
+                } catch (Exception e) {
+                    throw new RuntimeException("Database error: " + e.getMessage(), e);
+                }
+            });
+
+        registerMethod("remote_endpoints/update",
+            "Updates an existing remote endpoint's name",
+            List.of(
+                Map.of("name", "id", "type", "number", "required", true, "description", "The remote endpoint's ID"),
+                Map.of("name", "name", "type", "string", "required", true, "description", "The new name for the remote endpoint")
+            ),
+            params -> {
+                try {
+                    Object[] paramArray = (Object[]) params;
+                    Long id = ((Number) paramArray[0]).longValue();
+                    String name = paramArray[1].toString();
+                    boolean success = databaseManager.updateRemoteEndpoint(id, name);
+                    return Map.of("success", success);
+                } catch (Exception e) {
+                    throw new RuntimeException("Database error: " + e.getMessage(), e);
+                }
+            });
+
+        registerMethod("remote_endpoints/ping",
+            "Updates the last communication timestamp and current address for a remote endpoint",
+            List.of(
+                Map.of("name", "id", "type", "number", "required", true, "description", "The remote endpoint's ID"),
+                Map.of("name", "current_address", "type", "string", "required", true, "description", "The current address of the remote endpoint")
+            ),
+            params -> {
+                try {
+                    Object[] paramArray = (Object[]) params;
+                    Long id = ((Number) paramArray[0]).longValue();
+                    String currentAddress = paramArray[1].toString();
+                    boolean success = databaseManager.pingRemoteEndpoint(id, currentAddress);
+                    return Map.of("success", success);
+                } catch (Exception e) {
+                    throw new RuntimeException("Database error: " + e.getMessage(), e);
+                }
+            });
+
+        registerMethod("remote_endpoints/list",
+            "Lists all remote endpoints with their details",
+            List.of(),
+            params -> {
+                try {
+                    List<Map<String, Object>> endpoints = databaseManager.listRemoteEndpoints();
+                    return Map.of("endpoints", endpoints);
+                } catch (Exception e) {
+                    throw new RuntimeException("Database error: " + e.getMessage(), e);
+                }
+            });
+
+        registerMethod("remote_endpoints/generateToken",
+            "Generates or retrieves the authentication token for a remote endpoint",
+            List.of(
+                Map.of("name", "id", "type", "number", "required", true, "description", "The remote endpoint's ID")
+            ),
+            params -> {
+                try {
+                    Object[] paramArray = (Object[]) params;
+                    Long id = ((Number) paramArray[0]).longValue();
+                    return databaseManager.generateRemoteEndpointToken(id);
+                } catch (Exception e) {
+                    throw new RuntimeException("Database error: " + e.getMessage(), e);
+                }
+            });
+
+        registerMethod("remote_endpoints/getByToken",
+            "Retrieves a remote endpoint by its authentication token",
+            List.of(
+                Map.of("name", "token", "type", "string", "required", true, "description", "The authentication token")
+            ),
+            params -> {
+                try {
+                    Object[] paramArray = (Object[]) params;
+                    String token = paramArray[0].toString();
+                    Map<String, Object> endpoint = databaseManager.getRemoteEndpointByToken(token);
+                    if (endpoint == null) {
+                        return Map.of("error", "Remote endpoint not found or token expired");
+                    }
+                    return endpoint;
+                } catch (Exception e) {
+                    throw new RuntimeException("Database error: " + e.getMessage(), e);
+                }
+            });
+
+        registerMethod("messages/publish",
+            "Publishes messages with a topic and list of payloads",
+            List.of(
+                Map.of("name", "topic", "type", "string", "required", true, "description", "The message topic"),
+                Map.of("name", "payloads", "type", "array", "required", true, "description", "List of payload strings")
+            ),
+            params -> {
+                try {
+                    Object[] paramArray = (Object[]) params;
+                    String topic = paramArray[0].toString();
+                    List<?> payloadsList = (List<?>) paramArray[1];
+                    List<String> payloads = new ArrayList<>();
+                    for (Object payload : payloadsList) {
+                        payloads.add(payload.toString());
+                    }
+                    List<Long> ids = databaseManager.publishMessage(topic, payloads);
+                    return Map.of("message_ids", ids);
+                } catch (Exception e) {
+                    throw new RuntimeException("Database error: " + e.getMessage(), e);
+                }
+            });
+
+        registerMethod("messages/poll",
+            "Retrieves messages for a specific topic ordered by creation time",
+            List.of(
+                Map.of("name", "topic", "type", "string", "required", true, "description", "The message topic to filter by")
+            ),
+            params -> {
+                try {
+                    String topic = params[0].toString();
+                    List<Map<String, Object>> messages = databaseManager.pollMessages(topic);
+                    return Map.of("messages", messages);
+                } catch (Exception e) {
+                    throw new RuntimeException("Database error: " + e.getMessage(), e);
+                }
+            });
+
+        registerMethod("files/create",
+            "Creates a new file in the system",
+            List.of(
+                Map.of("name", "file", "type", "object", "required", true, "description", "File object containing name, optionally content_type and payload")
+            ),
+            params -> {
+                try {
+                    File file = objectMapper.convertValue(params[0], File.class);
+                    Long id = filesRegistry.create(file);
+                    return Map.of("id", id);
+                } catch (Exception e) {
+                    throw new RuntimeException("File error: " + e.getMessage(), e);
+                }
+            });
+
+        registerMethod("files/delete",
+            "Deletes a file by its ID",
+            List.of(
+                Map.of("name", "id", "type", "number", "required", true, "description", "The file's ID")
+            ),
+            params -> {
+                try {
+                    Object[] paramArray = (Object[]) params;
+                    Long id = ((Number) paramArray[0]).longValue();
+                    boolean success = filesRegistry.delete(id);
+                    return Map.of("success", success);
+                } catch (Exception e) {
+                    throw new RuntimeException("File error: " + e.getMessage(), e);
+                }
+            });
+
+        registerMethod("files/list",
+            "Retrieves a paginated list of files with optional filtering and sorting",
+            List.of(
+                Map.of("name", "paginator", "type", "object", "required", true, "description", "Pagination options with optional filters for name")
+            ),
+            params -> {
+                try {
+                    Paginator paginator = objectMapper.convertValue(params[0], Paginator.class);
+                    return filesRegistry.findBy(paginator);
+                } catch (Exception e) {
+                    throw new RuntimeException("File error: " + e.getMessage(), e);
+                }
+            });
+
+        registerMethod("files/searchByName",
+            "Searches for files by name with partial matching",
+            List.of(
+                Map.of("name", "name", "type", "string", "required", true, "description", "The name or partial name to search for")
+            ),
+            params -> {
+                try {
+                    String name = params[0].toString();
+                    return Map.of("files", filesRegistry.searchByName(name));
+                } catch (Exception e) {
+                    throw new RuntimeException("File error: " + e.getMessage(), e);
+                }
+            });
     }
 
     private Timestamp parseTimestamp(Object obj) {
@@ -778,7 +980,7 @@ public class JsonRpcHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             return;
         }
 
-        if (request.method() == HttpMethod.GET && "/schema".equals(request.uri())) {
+        if (HttpMethod.GET.equals(request.method()) && "/schema".equals(request.uri())) {
             try {
                 String jsonResponse = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(getSchema());
                 FullHttpResponse httpResponse = new io.netty.handler.codec.http.DefaultFullHttpResponse(
@@ -796,7 +998,46 @@ public class JsonRpcHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             }
         }
 
-        if (request.method() != HttpMethod.POST) {
+        if (HttpMethod.GET.equals(request.method()) && request.uri().startsWith("/files/")) {
+            try {
+                String fileIdStr = request.uri().substring(7);
+                long fileId = Long.parseLong(fileIdStr);
+                
+                com.github.dgdevel.core.model.File file = filesRegistry.findById(fileId);
+                
+                if (file == null) {
+                    sendError(ctx, HttpResponseStatus.NOT_FOUND);
+                    return;
+                }
+
+                String payload = file.getPayload();
+                if (payload == null || payload.isEmpty()) {
+                    sendError(ctx, HttpResponseStatus.NOT_FOUND);
+                    return;
+                }
+
+                byte[] data = payload.getBytes();
+                FullHttpResponse httpResponse = new io.netty.handler.codec.http.DefaultFullHttpResponse(
+                    HttpVersion.HTTP_1_1,
+                    HttpResponseStatus.OK,
+                    io.netty.buffer.Unpooled.wrappedBuffer(data)
+                );
+                httpResponse.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/octet-stream");
+                httpResponse.headers().set(HttpHeaderNames.CONTENT_LENGTH, httpResponse.content().readableBytes());
+                httpResponse.headers().set(HttpHeaderNames.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"");
+                ctx.writeAndFlush(httpResponse);
+                return;
+            } catch (NumberFormatException e) {
+                sendError(ctx, HttpResponseStatus.BAD_REQUEST);
+                return;
+            } catch (Exception e) {
+                e.printStackTrace();
+                sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
+                return;
+            }
+        }
+
+        if (!HttpMethod.POST.equals(request.method())) {
             sendError(ctx, HttpResponseStatus.METHOD_NOT_ALLOWED);
             return;
         }

@@ -1,6 +1,6 @@
 # core-client
 
-A command-line client for the core service, supporting both JSON-RPC (HTTP) and MessagePack (TCP) protocols.
+A command-line client for core service, supporting JSON-RPC (HTTP) protocol.
 
 ## Requirements
 
@@ -17,8 +17,6 @@ mvn clean package
 This creates an executable JAR at `target/core-client-1.0.0.jar`.
 
 ## Usage
-
-### JSON-RPC Client
 
 ```bash
 java -jar target/core-client-1.0.0.jar [--server <server-url>] <method-name> [param1] [param2] [...]
@@ -71,23 +69,6 @@ Call with a custom server URL:
 java -jar target/core-client-1.0.0.jar --server http://example.com:9090 generic/ping
 ```
 
-### MessagePack Examples
-
-Call `generic/ping` using MessagePack protocol:
-```bash
-java -jar target/core-client-1.0.0.jar --msgpack-host localhost generic/ping
-```
-
-Call `generic/setConfigValue` using MessagePack with custom port:
-```bash
-java -jar target/core-client-1.0.0.jar --msgpack-host localhost --msgpack-port 9091 generic/setConfigValue app theme dark
-```
-
-Connect to remote MessagePack server:
-```bash
-java -jar target/core-client-1.0.0.jar --msgpack-host example.com --msgpack-port 9091 generic/ping
-```
-
 ## How It Works
 
 ### JSON-RPC Protocol
@@ -115,38 +96,6 @@ For all other commands, the client:
    - `object` → JSON object parsed as `Map`
 4. A JSON-RPC 2.0 request is constructed and sent to the server
 5. The response is displayed in formatted JSON
-
-### MessagePack Protocol
-
-When using `--msgpack-host`, the client uses MessagePack protocol:
-
-1. Constructs a MessagePack-encoded request with the format: `["2.0", method, [params], id]`
-2. Opens a TCP connection to the MessagePack server
-3. Sends the MessagePack-encoded request
-4. Reads the MessagePack-encoded response
-5. Decodes and displays the response in formatted JSON
-
-**MessagePack Request Format:**
-```
-[
-  "2.0",           // jsonrpc version
-  "method/name",    // method name
-  [param1, ...],   // parameters as array
-  1                // request id
-]
-```
-
-**MessagePack Response Format:**
-```
-[
-  "2.0",           // jsonrpc version
-  {...result},      // result (or nil on error)
-  [code, msg] or nil,  // error array or nil if success
-  1                // request id
-]
-```
-
-All parameters are passed as strings and the server handles type conversion internally.
 
 ## Available Methods
 

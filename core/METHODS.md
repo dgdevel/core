@@ -243,98 +243,6 @@ Retrieves an attribute value for a user.
 
 **Returns:** `string` - The attribute value, or `null` if not found
 
-#### `user/addAddress`
-
-Adds a single address to a user.
-
-**Parameters:**
-- `user_id` (number): The user's ID
-- `address` (object): Address object containing:
-  - `address_type` (string): Type of address - one of: "HOME", "WORK", "BILLING", "SHIPPING", "PRIMARY", "SECONDARY", "TEMPORARY", "OTHER"
-  - `street1` (string, optional): Primary street address line
-  - `street2` (string, optional): Secondary street address line (e.g., apartment, suite)
-  - `city` (string, optional): City name
-  - `state` (string, optional): State or province name
-  - `postal_code` (string, optional): Postal or ZIP code
-  - `country` (string, optional): Country name
-  - `email` (string, optional): Email address
-  - `phone` (string, optional): Phone number
-- `mobile` (string, optional): Mobile phone number
-- `fax` (string, optional): Fax number
-- `fullname` (string, optional): Full name of the contact person
-
-**Returns:** `object` with `id` number - The ID of the created address
-
-**Errors:**
-- Throws an error if the user does not exist
-
-#### `user/addAddresses`
-
-Adds multiple addresses to a user at once.
-
-**Parameters:**
-- `user_id` (number): The user's ID
-- `addresses` (array): Array of address objects (same structure as `addAddress`)
-
-**Returns:** `array` - Array of address IDs in the same order as the input addresses
-
-**Errors:**
-- Throws an error if any address addition fails (including user not found)
-
-#### `user/getAddresses`
-
-Retrieves all addresses for a user.
-
-**Parameters:**
-- `user_id` (number): The user's ID
-
-**Returns:** `array` - Array of address objects with all fields including `id` and `user_id`
-
-#### `user/getAddressesByType`
-
-Retrieves addresses for a user filtered by address type.
-
-**Parameters:**
-- `user_id` (number): The user's ID
-- `address_type` (string): The address type to filter by - one of: "HOME", "WORK", "BILLING", "SHIPPING", "PRIMARY", "SECONDARY", "TEMPORARY", "OTHER"
-
-**Returns:** `array` - Array of address objects matching the specified type
-
-#### `user/updateAddress`
-
-Updates an existing address.
-
-**Parameters:**
-- `address` (object): Address object containing:
-  - `id` (number, required): The address ID to update
-  - All other fields are optional and will be updated to the provided values
-
-**Returns:** `object` with `success` boolean indicating if the operation succeeded
-
-**Notes:**
-- Only the fields provided in the request will be updated
-- Unspecified fields will retain their current values
-
-#### `user/deleteAddress`
-
-Deletes a specific address.
-
-**Parameters:**
-- `id` (number): The address ID to delete
-
-**Returns:** `object` with `success` boolean indicating if the operation succeeded
-
-#### `user/deleteAddresses`
-
-Deletes all addresses for a user.
-
-**Parameters:**
-- `user_id` (number): The user's ID
-
-**Returns:** `object` with `success` boolean indicating if the operation succeeded
-
-**Note:** This is a permanent deletion. All addresses for the user will be removed.
-
 ### Audit Service
 
 #### `audit/log`
@@ -344,6 +252,7 @@ Logs an audit event. Creates a log type entry if it doesn't exist, then inserts 
 **Parameters:**
 - `user_id` (number, optional): The user ID associated with the event. Use `null` for system events
 - `type` (string): The type of audit event (e.g., "LOGIN", "LOGOUT", "SYSTEM")
+- `remote_address` (string): The remote address of the client making the request
 - `payload` (string): The payload data for the audit event
 
 **Returns:** `object` with `id` number - The ID of the created audit log entry
@@ -476,4 +385,248 @@ Checks if a user currently has all of the specified roles based on the current t
 **Notes:**
 - Returns `true` if the role_ids array is empty
 - Only considers authorizations where `valid_from` <= current time <= `valid_until`
+
+#### `authorization/addFunctionToRole`
+
+Links a function to a role.
+
+**Parameters:**
+- `role_id` (number): The role's ID
+- `function_id` (number): The function's ID
+
+**Returns:** `object` with `success` boolean indicating if the operation succeeded
+
+**Errors:**
+- Throws an error if the role does not exist
+- Throws an error if the function does not exist
+- Throws an error if the function is already linked to the role
+
+#### `authorization/removeFunctionFromRole`
+
+Unlinks a function from a role.
+
+**Parameters:**
+- `role_id` (number): The role's ID
+- `function_id` (number): The function's ID
+
+**Returns:** `object` with `success` boolean indicating if the operation succeeded
+
+**Errors:**
+- Throws an error if the role does not exist
+- Throws an error if the function does not exist
+
+#### `authorization/getFunctionsByRole`
+
+Retrieves all functions linked to a role.
+
+**Parameters:**
+- `role_id` (number): The role's ID
+
+**Returns:** `array` - Array of function objects with `id`, `name`, and `url` fields
+
+#### `authorization/getMenuTree`
+
+Retrieves the menu tree for a user based on their authorized functions.
+
+**Parameters:**
+- `user_id` (number): The user's ID
+
+**Returns:** `array` - Array of menu objects in hierarchical structure based on the user's authorized functions
+
+### Function & Menu Service
+
+#### `generic/createFunction`
+
+Creates a new function in the system.
+
+**Parameters:**
+- `function` (object): Function object containing:
+  - `name` (string): The function name (required)
+  - `url` (string, optional): The function URL
+
+**Returns:** `object` with `id` number - The ID of the created function
+
+#### `generic/updateFunction`
+
+Updates an existing function.
+
+**Parameters:**
+- `function` (object): Function object containing:
+  - `id` (number, required): The function ID
+  - `name` (string): The function name
+  - `url` (string, optional): The function URL
+
+**Returns:** `object` with `success` boolean indicating if the operation succeeded
+
+#### `generic/createMenu`
+
+Creates a new menu entry.
+
+**Parameters:**
+- `menu` (object): Menu object containing:
+  - `function_id` (number): The associated function ID (required)
+  - `parent_id` (number, optional): The parent menu ID for hierarchical menus
+
+**Returns:** `object` with `id` number - The ID of the created menu entry
+
+#### `generic/updateMenu`
+
+Updates an existing menu entry.
+
+**Parameters:**
+- `menu` (object): Menu object containing:
+  - `id` (number, required): The menu ID
+  - `function_id` (number): The associated function ID
+  - `parent_id` (number, optional): The parent menu ID for hierarchical menus
+
+**Returns:** `object` with `success` boolean indicating if the operation succeeded
+
+#### `generic/getMenuTree`
+
+Retrieves the complete menu tree.
+
+**Parameters:** None
+
+**Returns:** `array` - Array of menu objects in hierarchical structure
+
+#### `generic/findFunctionByName`
+
+Finds a function by name.
+
+**Parameters:**
+- `name` (string): The function name
+
+**Returns:** `object` - The function object with `id`, `name`, and `url` fields, or `null` if not found
+
+#### `generic/getAllFunctions`
+
+Retrieves all functions.
+
+**Parameters:** None
+
+**Returns:** `array` - Array of all function objects with `id`, `name`, and `url` fields
+
+### Remote Endpoints Service
+
+#### `remote_endpoints/create`
+
+Creates a new remote endpoint.
+
+**Parameters:**
+- `name` (string): The name of the remote endpoint
+
+**Returns:** `object` with `id` number - The ID of the created remote endpoint
+
+#### `remote_endpoints/update`
+
+Updates an existing remote endpoint's name.
+
+**Parameters:**
+- `id` (number): The remote endpoint's ID
+- `name` (string): The new name for the remote endpoint
+
+**Returns:** `object` with `success` boolean indicating if the operation succeeded
+
+#### `remote_endpoints/ping`
+
+Updates the last communication timestamp and current address for a remote endpoint.
+
+**Parameters:**
+- `id` (number): The remote endpoint's ID
+- `current_address` (string): The current address of the remote endpoint
+
+**Returns:** `object` with `success` boolean indicating if the operation succeeded
+
+#### `remote_endpoints/list`
+
+Lists all remote endpoints with their details.
+
+**Parameters:** None
+
+**Returns:** `array` - Array of remote endpoint objects containing id, name, current_address, token, and last_communication_at
+
+#### `remote_endpoints/generateToken`
+
+Generates or retrieves the authentication token for a remote endpoint.
+
+**Parameters:**
+- `id` (number): The remote endpoint's ID
+
+**Returns:** `object` with `token` string - The authentication token
+
+#### `remote_endpoints/getByToken`
+
+Retrieves a remote endpoint by its authentication token.
+
+**Parameters:**
+- `token` (string): The authentication token
+
+**Returns:** `object` - The remote endpoint object with id, name, current_address, and last_communication_at, or `null` if not found
+
+### Messages Service
+
+#### `messages/publish`
+
+Publishes messages with a topic and list of payloads.
+
+**Parameters:**
+- `topic` (string): The message topic
+- `payloads` (array): List of payload strings
+
+**Returns:** `object` with `success` boolean indicating if the operation succeeded
+
+#### `messages/poll`
+
+Retrieves messages for a specific topic ordered by creation time.
+
+**Parameters:**
+- `topic` (string): The message topic to filter by
+
+**Returns:** `array` - Array of message objects containing id, topic, payload, and created_at
+
+### Files Service
+
+#### `files/create`
+
+Creates a new file in the system.
+
+**Parameters:**
+- `file` (object): File object containing:
+  - `name` (string): The file name (required)
+  - `content_type` (string, optional): The content type of the file
+  - `payload` (string, optional): The file content as base64 string
+
+**Returns:** `object` with `id` number - The ID of the created file
+
+#### `files/delete`
+
+Deletes a file by its ID.
+
+**Parameters:**
+- `id` (number): The file's ID
+
+**Returns:** `object` with `success` boolean indicating if the operation succeeded
+
+#### `files/list`
+
+Retrieves a paginated list of files with optional filtering and sorting.
+
+**Parameters:**
+- `paginator` (object): Pagination options (see [Paginator Object](#paginator-object))
+
+**Available filters:**
+- `name` (string, optional): Filter by file name (partial match)
+
+**Returns:** `object` containing:
+- `page` (array): Array of file objects for the current page
+- `totalCount` (number): Total number of files matching the criteria
+
+#### `files/searchByName`
+
+Searches for files by name with partial matching.
+
+**Parameters:**
+- `name` (string): The name or partial name to search for
+
+**Returns:** `array` - Array of file objects with id, name, content_type, and created_at
 

@@ -947,7 +947,7 @@ public class ServerTest {
             {
                 "jsonrpc": "2.0",
                 "method": "audit/log",
-                "params": [null, "LOGIN", "user logged in"],
+                "params": [null, "LOGIN", "127.0.0.1", "user logged in"],
                 "id": 27
             }
             """;
@@ -987,7 +987,7 @@ public class ServerTest {
             {
                 "jsonrpc": "2.0",
                 "method": "audit/log",
-                "params": [null, "SYSTEM", "system event"],
+                "params": [null, "SYSTEM", "192.168.1.1", "system event"],
                 "id": 28
             }
             """;
@@ -1027,7 +1027,7 @@ public class ServerTest {
             {
                 "jsonrpc": "2.0",
                 "method": "audit/log",
-                "params": [null, "LOGIN", "user 1 logged in"],
+                "params": [null, "LOGIN", "127.0.0.1", "user 1 logged in"],
                 "id": 29
             }
             """;
@@ -1047,7 +1047,7 @@ public class ServerTest {
             {
                 "jsonrpc": "2.0",
                 "method": "audit/log",
-                "params": [null, "LOGOUT", "user 2 logged out"],
+                "params": [null, "LOGOUT", "127.0.0.2", "user 2 logged out"],
                 "id": 30
             }
             """;
@@ -1140,4 +1140,116 @@ public class ServerTest {
         assertEquals(0, jsonResponse.get("result").get("totalCount").asInt());
         assertEquals(0, jsonResponse.get("result").get("page").size());
     }
+
+    @Test
+    public void testRemoteEndpointsCreate() throws Exception {
+        String request = """
+            {
+                "jsonrpc": "2.0",
+                "method": "remote_endpoints/create",
+                "params": [{"name": "Test Endpoint"}],
+                "id": 33
+            }
+            """;
+
+        HttpURLConnection connection = (HttpURLConnection) new URL("http://localhost:" + testPort).openConnection();
+        connection.setRequestMethod("POST");
+        connection.setRequestProperty("Content-Type", "application/json");
+        connection.setDoOutput(true);
+
+        try (OutputStream os = connection.getOutputStream()) {
+            os.write(request.getBytes());
+            os.flush();
+        }
+
+        int responseCode = connection.getResponseCode();
+        assertEquals(200, responseCode);
+
+        StringBuilder response = new StringBuilder();
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                response.append(line);
+            }
+        }
+
+        JsonNode jsonResponse = objectMapper.readTree(response.toString());
+        assertEquals("2.0", jsonResponse.get("jsonrpc").asText());
+        assertEquals(33, jsonResponse.get("id").asInt());
+        assertNotNull(jsonResponse.get("result"));
+        assertNotNull(jsonResponse.get("result").get("user_id"));
+        assertNotNull(jsonResponse.get("result").get("remote_endpoint_id"));
+        assertTrue(jsonResponse.get("result").get("user_id").asLong() > 0);
+        assertTrue(jsonResponse.get("result").get("remote_endpoint_id").asLong() > 0);
+    }
+
+    @Test
+    public void testRemoteEndpointsUpdate() throws Exception {
+        String createRequest = """
+            {
+                "jsonrpc": "2.0",
+                "method": "remote_endpoints/create",
+                "params": [{"name": "Original Name"}],
+                "id": 34
+            }
+            """;
+
+        HttpURLConnection createConnection = (HttpURLConnection) new URL("http://localhost:" + testPort).openConnection();
+        createConnection.setRequestMethod("POST");
+        createConnection.setRequestProperty("Content-Type", "application/json");
+        createConnection.setDoOutput(true);
+
+        try (OutputStream os = createConnection.getOutputStream()) {
+            os.write(createRequest.getBytes());
+            os.flush();
+        }
+
+        StringBuilder createResponse = new StringBuilder();
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(createConnection.getInputStream()))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                createResponse.append(line);
+            }
+        }
+
+        JsonNode createJson = objectMapper.readTree(createResponse.toString());
+        Long id = createJson.get("result").get("remote_endpoint_id").asLong();
+
+        String updateRequest = """
+            {
+                "jsonrpc": "2.0",
+                "method": "remote_endpoints/update",
+                "params": [%d, "Updated Name"],
+                "id": 35
+            }
+            """.formatted(id);
+
+        HttpURLConnection updateConnection = (HttpURLConnection) new URL("http://localhost:" + testPort).openConnection();
+        updateConnection.setRequestMethod("POST");
+        updateConnection.setRequestProperty("Content-Type", "application/json");
+        updateConnection.setDoOutput(true);
+
+        try (OutputStream os = updateConnection.getOutputStream()) {
+            os.write(updateRequest.getBytes());
+            os.flush();
+        }
+
+        int responseCode = updateConnection.getResponseCode();
+        assertEquals(200, responseCode);
+
+        StringBuilder updateResponse = new StringBuilder();
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(updateConnection.getInputStream()))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                updateResponse.append(line);
+            }
+        }
+
+        JsonNode updateJson = objectMapper.readTree(updateResponse.toString());
+        assertEquals("2.0", updateJson.get("jsonrpc").asText());
+        assertEquals(35, updateJson.get("id").asInt());
+        assertNotNull(updateJson.get("result"));
+        assertTrue(updateJson.get("result").get("success").asBoolean());
+    }
+
 }

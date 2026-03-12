@@ -6,7 +6,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -146,22 +149,22 @@ public class DatabaseManagerTest {
 
     @Test
     public void testAuditLog() throws SQLException {
-        Long id = databaseManager.auditLog(null, "LOGIN", "user logged in");
+        Long id = databaseManager.auditLog(null, "LOGIN", "user logged in", "127.0.0.1");
         assertNotNull(id);
         assertTrue(id > 0);
     }
 
     @Test
     public void testAuditLogWithNullUserId() throws SQLException {
-        Long id = databaseManager.auditLog(null, "SYSTEM", "system event");
+        Long id = databaseManager.auditLog(null, "SYSTEM", "system event", "192.168.1.1");
         assertNotNull(id);
         assertTrue(id > 0);
     }
 
     @Test
     public void testAuditLogSameType() throws SQLException {
-        Long id1 = databaseManager.auditLog(null, "LOGIN", "first login");
-        Long id2 = databaseManager.auditLog(null, "LOGIN", "second login");
+        Long id1 = databaseManager.auditLog(null, "LOGIN", "first login", "10.0.0.1");
+        Long id2 = databaseManager.auditLog(null, "LOGIN", "second login", "10.0.0.2");
         assertNotNull(id1);
         assertNotNull(id2);
         assertNotEquals(id1, id2);
@@ -169,9 +172,9 @@ public class DatabaseManagerTest {
 
     @Test
     public void testAuditLogList() throws SQLException {
-        databaseManager.auditLog(null, "LOGIN", "user 1 logged in");
-        databaseManager.auditLog(null, "LOGOUT", "user 2 logged out");
-        databaseManager.auditLog(null, "SYSTEM", "system event");
+        databaseManager.auditLog(null, "LOGIN", "user 1 logged in", "127.0.0.1");
+        databaseManager.auditLog(null, "LOGOUT", "user 2 logged out", "127.0.0.2");
+        databaseManager.auditLog(null, "SYSTEM", "system event", "127.0.0.3");
 
         Paginator paginator = new Paginator();
         paginator.setPageNumber(1);
@@ -199,9 +202,9 @@ public class DatabaseManagerTest {
 
     @Test
     public void testAuditLogListWithFilterByTypeCode() throws SQLException {
-        databaseManager.auditLog(null, "LOGIN", "user 1 logged in");
-        databaseManager.auditLog(null, "LOGOUT", "user 2 logged out");
-        databaseManager.auditLog(null, "SYSTEM", "system event");
+        databaseManager.auditLog(null, "LOGIN", "user 1 logged in", "127.0.0.1");
+        databaseManager.auditLog(null, "LOGOUT", "user 2 logged out", "127.0.0.2");
+        databaseManager.auditLog(null, "SYSTEM", "system event", "127.0.0.3");
 
         Paginator paginator = new Paginator();
         paginator.setPageNumber(1);
@@ -212,5 +215,94 @@ public class DatabaseManagerTest {
         assertNotNull(result);
         assertEquals(1, result.getTotalCount());
         assertEquals(1, result.getPage().size());
+    }
+
+    @Test
+    public void testCreateRemoteEndpoint() throws SQLException {
+        Map<String, Long> result = databaseManager.createRemoteEndpoint("Test Endpoint");
+        assertNotNull(result);
+        assertTrue(result.containsKey("user_id"));
+        assertTrue(result.containsKey("remote_endpoint_id"));
+        assertTrue(result.get("user_id") > 0);
+        assertTrue(result.get("remote_endpoint_id") > 0);
+    }
+
+    @Test
+    public void testCreateMultipleRemoteEndpoints() throws SQLException {
+        Map<String, Long> result1 = databaseManager.createRemoteEndpoint("Endpoint 1");
+        Map<String, Long> result2 = databaseManager.createRemoteEndpoint("Endpoint 2");
+        Map<String, Long> result3 = databaseManager.createRemoteEndpoint("Endpoint 3");
+        assertNotNull(result1);
+        assertNotNull(result2);
+        assertNotNull(result3);
+        assertNotEquals(result1.get("user_id"), result2.get("user_id"));
+        assertNotEquals(result2.get("user_id"), result3.get("user_id"));
+        assertNotEquals(result1.get("user_id"), result3.get("user_id"));
+        assertNotEquals(result1.get("remote_endpoint_id"), result2.get("remote_endpoint_id"));
+        assertNotEquals(result2.get("remote_endpoint_id"), result3.get("remote_endpoint_id"));
+        assertNotEquals(result1.get("remote_endpoint_id"), result3.get("remote_endpoint_id"));
+    }
+
+    @Test
+    public void testUpdateRemoteEndpoint() throws SQLException {
+        Map<String, Long> result = databaseManager.createRemoteEndpoint("Original Name");
+        Long id = result.get("remote_endpoint_id");
+        assertTrue(databaseManager.updateRemoteEndpoint(id, "Updated Name"));
+    }
+
+    @Test
+    public void testUpdateRemoteEndpointNotFound() throws SQLException {
+        boolean result = databaseManager.updateRemoteEndpoint(99999L, "Non-existent");
+        assertFalse(result);
+    }
+
+    @Test
+    public void testPingRemoteEndpoint() throws SQLException {
+        Map<String, Long> result = databaseManager.createRemoteEndpoint("Test Endpoint");
+        Long id = result.get("remote_endpoint_id");
+        boolean pingResult = databaseManager.pingRemoteEndpoint(id, "192.168.1.100");
+        assertTrue(pingResult);
+    }
+
+    @Test
+    public void testPingRemoteEndpointNotFound() throws SQLException {
+        boolean result = databaseManager.pingRemoteEndpoint(99999L, "192.168.1.100");
+        assertFalse(result);
+    }
+
+    @Test
+    public void testPingRemoteEndpointUpdatesAddress() throws SQLException {
+        Map<String, Long> result = databaseManager.createRemoteEndpoint("Test Endpoint");
+        Long id = result.get("remote_endpoint_id");
+        assertTrue(databaseManager.pingRemoteEndpoint(id, "192.168.1.100"));
+        assertTrue(databaseManager.pingRemoteEndpoint(id, "192.168.1.101"));
+    }
+
+    @Test
+    public void testUpdateRemoteEndpointUpdatesUser() throws SQLException {
+        Map<String, Long> result = databaseManager.createRemoteEndpoint("Original Name");
+        Long endpointId = result.get("remote_endpoint_id");
+        Long userId = result.get("user_id");
+
+        String sql = "SELECT display_name FROM users WHERE id = ?";
+        try (PreparedStatement stmt = databaseManager.getConnection().prepareStatement(sql)) {
+            stmt.setLong(1, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    assertEquals("Original Name", rs.getString("display_name"));
+                }
+            }
+        }
+
+        assertTrue(databaseManager.updateRemoteEndpoint(endpointId, "Updated Name"));
+
+        try (PreparedStatement stmt2 = databaseManager.getConnection().prepareStatement(sql)) {
+            stmt2.setLong(1, userId);
+            try (ResultSet rs2 = stmt2.executeQuery()) {
+                if (rs2.next()) {
+                    assertEquals("Updated Name", rs2.getString("display_name"));
+                }
+            }
+        }
     }
 }

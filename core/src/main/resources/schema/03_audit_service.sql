@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
     instant_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     user_id BIGINT,
     log_type_id BIGINT NOT NULL,
+    remote_address VARCHAR NOT NULL,
     payload VARCHAR(1000) NOT NULL,
     FOREIGN KEY (log_type_id) REFERENCES audit_log_type(id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
